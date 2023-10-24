@@ -1,10 +1,12 @@
 return {
   {
-    "shaunsingh/nord.nvim",
+--    "shaunsingh/nord.nvim",
+    "jacoborus/tender.vim",
     priority = 1000, -- make sure to load this before all the other start plugins
     config = function()
       -- load the colorscheme here
-      vim.cmd([[colorscheme nord]])
+--      vim.cmd([[colorscheme nord]])
+      vim.cmd([[colorscheme tender]])
     end,
   },
 }
