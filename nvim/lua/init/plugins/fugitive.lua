@@ -1,6 +1,6 @@
 return {
   "tpope/vim-fugitive",
-    dependencies = {
+  dependencies = {
     "mhinz/vim-signify"
   },
   config = function()
