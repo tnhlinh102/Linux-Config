@@ -3,7 +3,10 @@ return {
   branch = "0.1.x",
   dependencies = {
     "nvim-lua/plenary.nvim",
-    { 'nvim-telescope/telescope-fzf-native.nvim', build = "make" },
+    {
+      'nvim-telescope/telescope-fzf-native.nvim',
+      build = "make",
+    },
     "nvim-tree/nvim-web-devicons",
   },
   config = function()
@@ -28,12 +31,10 @@ return {
 	      override_file_sorter = true,     -- override the file sorter
 	      case_mode = "smart_case",        -- or "ignore_case" or "respect_case"
 					       -- the default case_mode is "smart_case"
-	    }
+        },
       }
     })
-
-    telescope.load_extension("fzf")
-
+    require('telescope').load_extension('fzf')
     -- set keymaps
     local keymap = vim.keymap -- for conciseness
 
