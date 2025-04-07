@@ -137,6 +137,22 @@ return {
       on_attach = on_attach,
     })
 
+    -- configure rust-analyzer server
+    lspconfig["rust_analyzer"].setup({
+      capabilities = capabilities,
+      on_attach = on_attach,
+      settings = {
+        ["rust-analyzer"] = {
+          cargo = {
+            allFeatures = true,
+          },
+          checkOnSave = {
+            command = "clippy",
+          },
+        },
+      },
+    })
+    
     -- configure lua server (with special settings)
     lspconfig["lua_ls"].setup({
       capabilities = capabilities,
