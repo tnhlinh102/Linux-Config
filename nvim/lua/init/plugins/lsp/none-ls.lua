@@ -14,11 +14,16 @@ return {
 
     mason_null_ls.setup({
       ensure_installed = {
-        "prettier", -- prettier formatter
-        "stylua", -- lua formatter
-        "black", -- python formatter
-        "pylint", -- python linter
-        "eslint_d", -- js linter
+        "prettier",
+        "stylua",
+        "black",
+        "isort",
+        "pylint",
+        "eslint_d",
+        "goimports",
+        "gofumpt",
+        "golangci_lint",
+        -- rustfmt comes with rustup, not Mason
       },
     })
 
@@ -35,20 +40,25 @@ return {
       root_dir = null_ls_utils.root_pattern(".null-ls-root", "Makefile", ".git", "package.json"),
       -- setup formatters & linters
       sources = {
-        --  to disable file types use
-        --  "formatting.prettier.with({disabled_filetypes: {}})" (see null-ls docs)
-        formatting.prettier.with({
-          extra_filetypes = { "svelte" },
-        }), -- js/ts formatter
-        formatting.stylua, -- lua formatter
+        -- TypeScript / JS
+        formatting.prettier.with({ extra_filetypes = { "svelte" } }),
+        diagnostics.eslint_d.with({
+          condition = function(utils)
+            return utils.root_has_file({ ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json" })
+          end,
+        }),
+        -- Lua
+        formatting.stylua,
+        -- Python
         formatting.isort,
         formatting.black,
         diagnostics.pylint,
-        diagnostics.eslint_d.with({ -- js/ts linter
-          condition = function(utils)
-            return utils.root_has_file({ ".eslintrc.js", ".eslintrc.cjs" }) -- only enable if root has .eslintrc.js or .eslintrc.cjs
-          end,
-        }),
+        -- Go
+        formatting.goimports,
+        formatting.gofumpt,
+        diagnostics.golangci_lint,
+        -- Rust
+        formatting.rustfmt,
       },
       -- configure format on save
       on_attach = function(current_client, bufnr)
