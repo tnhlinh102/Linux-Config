@@ -1,7 +1,8 @@
 return {
   "nvimtools/none-ls.nvim", -- configure formatters & linters
-  lazy = true,
-  -- event = { "BufReadPre", "BufNewFile" }, -- to enable uncomment this
+  -- Truoc day: lazy = true ma khong co event/ft/cmd nao va khong file nao
+  -- require("null-ls") -> plugin KHONG BAO GIO duoc load, toan bo config nay chet.
+  event = { "BufReadPre", "BufNewFile" },
   dependencies = {
     "jay-babu/mason-null-ls.nvim",
   },
@@ -19,7 +20,6 @@ return {
         "black",
         "isort",
         "pylint",
-        "eslint_d",
         "goimports",
         "gofumpt",
         "golangci_lint",
@@ -42,11 +42,10 @@ return {
       sources = {
         -- TypeScript / JS
         formatting.prettier.with({ extra_filetypes = { "svelte" } }),
-        diagnostics.eslint_d.with({
-          condition = function(utils)
-            return utils.root_has_file({ ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json" })
-          end,
-        }),
+        -- ESLint da BO khoi day: builtin `diagnostics.eslint_d` khong con ton tai
+        -- trong none-ls (da tach sang repo none-ls-extras). Goi .with() tren nil
+        -- lam ca null_ls.setup() chet -> mat luon prettier.
+        -- ESLint gio do eslint-lsp lo (xem lspconfig.lua) - ho tro flat config san.
         -- Lua
         formatting.stylua,
         -- Python
@@ -62,7 +61,8 @@ return {
       },
       -- configure format on save
       on_attach = function(current_client, bufnr)
-        if current_client.supports_method("textDocument/formatting") then
+        -- dang colon: supports_method la method cua Client tu Neovim 0.11
+        if current_client:supports_method("textDocument/formatting") then
           vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
           vim.api.nvim_create_autocmd("BufWritePre", {
             group = augroup,

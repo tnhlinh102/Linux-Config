@@ -32,14 +32,29 @@ return {
       keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
       opts.desc = "Show line diagnostics"
       keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
+      -- vim.diagnostic.goto_prev/goto_next da deprecated tu 0.11, dung jump()
       opts.desc = "Go to previous diagnostic"
-      keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
+      keymap.set("n", "[d", function()
+        vim.diagnostic.jump({ count = -1, float = true })
+      end, opts)
       opts.desc = "Go to next diagnostic"
-      keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+      keymap.set("n", "]d", function()
+        vim.diagnostic.jump({ count = 1, float = true })
+      end, opts)
       opts.desc = "Show documentation for what is under cursor"
       keymap.set("n", "K", vim.lsp.buf.hover, opts)
       opts.desc = "Restart LSP"
       keymap.set("n", "<leader>rs", "<cmd>LspRestart<CR>", opts)
+
+      -- Inlay hints: hien type ma compiler suy luan ra ngay tren man hinh.
+      -- Rat huu ich khi dang hoc TypeScript.
+      if client:supports_method("textDocument/inlayHint") then
+        vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+        opts.desc = "Toggle inlay hints"
+        keymap.set("n", "<leader>ih", function()
+          vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = bufnr }), { bufnr = bufnr })
+        end, opts)
+      end
     end
 
     local capabilities = cmp_nvim_lsp.default_capabilities()
@@ -65,12 +80,51 @@ return {
     -- Danh sách servers
     local servers = {
       html = {},
-      ts_ls = {},
       cssls = {},
       tailwindcss = {},
       prismals = {},
       pyright = {},
-      efm = {},
+      jsonls = {},
+      -- ESLint qua LSP thay vi qua none-ls: ho tro flat config
+      -- (eslint.config.mjs cua Next.js 16) va co ca code action tu sua.
+      eslint = {
+        settings = { workingDirectories = { mode = "auto" } },
+        on_attach = function(client, bufnr)
+          on_attach(client, bufnr)
+          -- Tu sua loi ESLint co the fix duoc khi save
+          vim.api.nvim_create_autocmd("BufWritePre", {
+            buffer = bufnr,
+            command = "LspEslintFixAll",
+          })
+        end,
+      },
+      -- efm da bo: khai bao rong `efm = {}` khien no attach ma khong lam gi ca.
+      -- Formatter/linter da do none-ls lo.
+      ts_ls = {
+        settings = {
+          -- inlay hints phai bat ca o phia server, khong chi phia client
+          typescript = {
+            inlayHints = {
+              includeInlayParameterNameHints = "literals",
+              includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+              includeInlayFunctionParameterTypeHints = true,
+              includeInlayVariableTypeHints = true,
+              includeInlayVariableTypeHintsWhenTypeMatchesName = false,
+              includeInlayPropertyDeclarationTypeHints = true,
+              includeInlayFunctionLikeReturnTypeHints = true,
+              includeInlayEnumMemberValueHints = true,
+            },
+          },
+          javascript = {
+            inlayHints = {
+              includeInlayParameterNameHints = "literals",
+              includeInlayFunctionParameterTypeHints = true,
+              includeInlayVariableTypeHints = true,
+              includeInlayFunctionLikeReturnTypeHints = true,
+            },
+          },
+        },
+      },
       graphql = {
         filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
       },

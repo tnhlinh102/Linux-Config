@@ -22,6 +22,7 @@ return {
     mason_lspconfig.setup({
       ensure_installed = {
         "ts_ls",
+        "eslint", -- eslint-lsp: ho tro flat config (eslint.config.mjs) san
         "html",
         "cssls",
         "tailwindcss",
@@ -31,20 +32,25 @@ return {
         "emmet_ls",
         "prismals",
         "pyright",
-        "efm",
         "gopls",
         "rust_analyzer",
+        "jsonls",
       },
       automatic_installation = true,
-      -- QUAN TRỌNG: TẮT handlers để không tự động setup
-      handlers = {},
+      -- QUAN TRONG: tat tu dong enable server.
+      -- `handlers = {}` la option cua mason-lspconfig v1, da bi XOA o v2
+      -- (ban dang dung v2) nen no bi bo qua am tham va moi server da cai
+      -- deu bi vim.lsp.enable() tu dong. Option dung o v2 la automatic_enable.
+      -- Viec setup server do lspconfig.lua tu lo.
+      automatic_enable = false,
     })
 
     mason_tool_installer.setup({
       ensure_installed = {
         -- TypeScript / JS
         "prettier",
-        "eslint_d",
+        -- eslint_d da bo: builtin cua no khong con trong none-ls,
+        -- ESLint gio chay qua eslint-lsp
         -- Python
         "black",
         "isort",
