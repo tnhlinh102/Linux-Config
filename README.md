@@ -23,7 +23,8 @@ Cấu hình cá nhân cho **Neovim** và **tmux** trên Linux / WSL. Dùng hư�
 |---|---|---|
 | git | bất kỳ | `sudo apt install git` |
 | tmux | ≥ 3.2 | `sudo apt install tmux` |
-| Neovim | **≥ 0.11** | xem mục Neovim bên dưới |
+| Neovim | **≥ 0.12** | xem mục Neovim bên dưới |
+| tree-sitter-cli | **≥ 0.26.1** | xem mục Neovim bên dưới (**không** cài qua npm) |
 | Node.js | ≥ 18 | xem mục Node.js bên dưới |
 | Python | ≥ 3.10 | xem mục Python bên dưới |
 | Go | ≥ 1.21 | xem mục Go bên dưới |
@@ -32,7 +33,7 @@ Cấu hình cá nhân cho **Neovim** và **tmux** trên Linux / WSL. Dùng hư�
 | ripgrep | bất kỳ | `sudo apt install ripgrep` |
 | xclip | bất kỳ | `sudo apt install xclip` |
 
-> **Lưu ý về Neovim**: Config dùng API `vim.lsp.config` / `vim.lsp.enable` chỉ có từ **Neovim 0.11** trở lên. Cài phiên bản cũ hơn sẽ lỗi ngay khi mở. Đã kiểm tra trên **0.11.5**.
+> **Lưu ý về Neovim**: config dùng `nvim-treesitter` branch `main`, branch này yêu cầu **Neovim ≥ 0.12**. API `vim.lsp.config` / `vim.lsp.enable` cần ≥ 0.11. Đã kiểm tra trên **0.12.5**.
 >
 > Đừng cài `neovim` từ apt của Ubuntu — bản trong repo là 0.9.5, quá cũ để chạy config này.
 
@@ -222,23 +223,50 @@ tmux source ~/.tmux.conf
 
 ## Cài đặt Neovim + cấu hình
 
-### 1. Cài Neovim ≥ 0.11
+### 1. Cài Neovim ≥ 0.12
 
-**Cách A – dùng AppImage (đơn giản nhất, luôn có bản mới nhất):**
+**Cách A – tarball vào `~/.local` (khuyến nghị: không cần sudo, rollback dễ):**
 
 ```bash
-curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-chmod +x nvim-linux-x86_64.appimage
-sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
+V=0.12.5
+cd /tmp
+curl -LO https://github.com/neovim/neovim/releases/download/v$V/nvim-linux-x86_64.tar.gz
+tar xzf nvim-linux-x86_64.tar.gz
+mkdir -p ~/.local/opt && mv nvim-linux-x86_64 ~/.local/opt/nvim-$V
+ln -sf ~/.local/opt/nvim-$V/bin/nvim ~/.local/bin/nvim
 ```
 
-**Cách B – dùng snap:**
+Cần `~/.local/bin` nằm trong PATH và **đứng trước** `/usr/bin`. Thêm vào `~/.zshrc` nếu chưa có:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Cài kiểu này thì nâng cấp = giải nén bản mới rồi trỏ lại symlink, **rollback = trỏ symlink về bản cũ**. Giữ được nhiều version song song trong `~/.local/opt/`.
+
+**Cách B – snap:**
 
 ```bash
 sudo snap install nvim --classic
 ```
 
-Kiểm tra: `nvim --version`  ← phải hiển thị `v0.11` trở lên
+Kiểm tra: `nvim --version` ← phải là `v0.12` trở lên. Nếu ra version cũ, kiểm tra `which -a nvim` xem có bản nào khác đứng trước trong PATH.
+
+### 1b. Cài tree-sitter-cli ≥ 0.26.1
+
+Branch `main` của nvim-treesitter **bắt buộc** có cái này. Tải binary chính thức:
+
+```bash
+V=0.26.13
+cd /tmp
+curl -sL -o tree-sitter.gz https://github.com/tree-sitter/tree-sitter/releases/download/v$V/tree-sitter-linux-x64.gz
+gunzip -f tree-sitter.gz && chmod 755 tree-sitter
+install -m 755 tree-sitter ~/.local/bin/tree-sitter
+tree-sitter --version
+```
+
+> **Đừng cài qua npm.** Package `tree-sitter-cli` trên npm dùng install script để tải binary về; npm hiện chặn install script theo mặc định nên bạn sẽ có package không có binary, chạy là lỗi `spawn ... ENOENT`. Tài liệu branch `main` cũng ghi rõ *"installed via your package manager, **not npm**"*.
+>
+> `cargo install tree-sitter-cli` cũng được, **nhưng** bản 0.26 cần `libclang` để build — thiếu là lỗi `Unable to find libclang`, phải `sudo apt install libclang-dev` trước. Tải binary như trên nhanh hơn và không cần sudo.
 
 ### 2. Cài build tools & ripgrep
 
@@ -285,13 +313,16 @@ nvim
 
 ### 6. Cài treesitter parser
 
-Config ghim `nvim-treesitter` ở branch `master` (xem mục [Ghi chú cấu hình](#ghi-chú-cấu-hình-quan-trọng)). Parser tự cài khi mở file, nhưng cài trước cho chắc:
+Config dùng branch `main` và gọi `install()` ngay khi khởi động, nên chỉ cần mở `nvim` rồi đợi. Kiểm tra sau khi xong:
 
-```bash
-nvim -c "Lazy! load nvim-treesitter" -c "TSUpdateSync" -c "qa"
+```vim
+:checkhealth nvim-treesitter
+:lua print(#require("nvim-treesitter").get_installed("parsers"), #require("nvim-treesitter").get_installed("queries"))
 ```
 
-Kiểm tra: mở một file `.tsx` rồi chạy `:InspectTree` — phải thấy cây cú pháp, không phải báo lỗi thiếu parser.
+Kỳ vọng: **0 ERROR**, và ra `28  31`. Rồi mở một file `.tsx` chạy `:InspectTree` — phải thấy cây cú pháp.
+
+> `lua`, `vim`, `c`, `markdown`, `query`, `vimdoc` đã có sẵn trong runtime của Neovim 0.12 nên không nằm trong `site/parser` — đó là bình thường, không phải thiếu.
 
 ### Cấu trúc thư mục Neovim
 
@@ -332,18 +363,38 @@ nvim/
 
 Bốn quyết định dưới đây trông nhỏ nhưng đều từng làm config **hỏng âm thầm** — không báo lỗi, chỉ đơn giản là không hoạt động. Đừng "dọn dẹp" chúng mà không đọc lý do.
 
-### 1. `nvim-treesitter` phải ghim `branch = "master"`
+### 1. `nvim-treesitter` dùng branch `main` — không có `ensure_installed`
 
-```lua
-branch = "master",
-main = "nvim-treesitter.configs",
-```
+Config ghim `branch = "main"`. Branch này là bản viết lại và **khác hoàn toàn** branch `master` cũ:
 
-Branch `main` là bản viết lại, `TSConfig` của nó **chỉ nhận đúng một field `install_dir`**. Nếu để mặc định (lazy.nvim sẽ lấy `main`), toàn bộ `ensure_installed` / `highlight` / `indent` trong config sẽ **bị bỏ qua âm thầm** → file `.tsx` rơi về syntax regex cũ, không có parser.
+| | `master` (đã archive) | `main` (đang dùng) |
+|---|---|---|
+| Neovim | 0.10 / 0.11 — *0.12 not supported* | **≥ 0.12** |
+| tree-sitter-cli | ≤ 0.25.x | **≥ 0.26.1, không qua npm** |
+| Cài parser | `opts.ensure_installed` | `require("nvim-treesitter").install{...}` |
+| Highlight | `opts.highlight.enable` | tự gọi `vim.treesitter.start()` |
+| Indent | `opts.indent.enable` | tự set `indentexpr` (experimental) |
+| `incremental_selection` | có | **không có** |
 
-Cũng cần `highlight = { enable = true }` — cả hai branch đều **không** tự bật highlight.
+`setup()` của branch `main` **chỉ nhận đúng một field `install_dir`**. Nếu bạn copy config kiểu `master` vào (có `ensure_installed`, `highlight = { enable = true }`), nó sẽ **bị bỏ qua âm thầm** — không lỗi, chỉ là file `.tsx` rơi về syntax regex và không có parser.
 
-> Branch `master` đã được đánh dấu archive (commit cuối 03/2026). Vẫn chạy ổn định nhưng không có parser/fix mới. Khi nào chuyển sang `main` thì phải viết lại: tự gọi `vim.treesitter.start()` trong autocmd `FileType`, và `main` **không có** module `indent` / `incremental_selection`.
+Ba chi tiết trong `treesitter.lua` không được sửa nếu chưa hiểu:
+
+- **Không liệt kê filetype thủ công** trong autocmd `FileType`. Tên parser khác tên filetype — parser là `tsx` nhưng filetype là `typescriptreact`. Config dùng `vim.treesitter.language.get_lang()` để tự map, bọc `pcall` để filetype chưa có parser thì bỏ qua im lặng.
+- **Dấu nháy trong `indentexpr`** phải đúng: `"v:lua.require'nvim-treesitter'.indentexpr()"` — nháy đơn bên trong nháy kép.
+- **Không có parser `jsonc`** trên branch `main`. Config dùng `vim.treesitter.language.register("json", { "jsonc" })` để filetype `jsonc` (tsconfig.json có comment) dùng parser `json`.
+
+> **Khi state bị lệch, `install()` im lặng không làm gì.** Nếu thư mục parser và thư mục queries không đồng bộ (ví dụ bạn xoá `site/parser` mà để lại `site/queries`), `install()` tưởng đã cài xong và bỏ qua. Triệu chứng: `vim.treesitter.query.get("tsx","highlights")` trả `nil` dù parser có mặt. Cách sửa là dọn **cả hai** rồi cài lại:
+> ```bash
+> rm -rf ~/.local/share/nvim/site/parser \
+>        ~/.local/share/nvim/site/queries \
+>        ~/.local/share/nvim/site/parser-info
+> nvim   # config tự gọi install() khi khởi động, đợi cài xong rồi :q
+> ```
+> Kiểm tra lại bằng `:checkhealth nvim-treesitter` — phải 0 ERROR, và số parser phải khớp số bộ queries:
+> ```vim
+> :lua print(#require("nvim-treesitter").get_installed("parsers"), #require("nvim-treesitter").get_installed("queries"))
+> ```
 
 ### 2. `none-ls` không được đặt `lazy = true`
 
@@ -383,7 +434,6 @@ automatic_enable = false,   -- không phải handlers = {}
 | `[d` / `]d` | Diagnostic trước / sau |
 | `<leader>ih` | Bật/tắt inlay hints |
 | `<leader>rs` | Restart LSP |
-| `<C-space>` | Mở rộng vùng chọn theo cây treesitter |
 
 > **Inlay hints bật sẵn** cho server nào hỗ trợ (`ts_ls`, `gopls`, `rust_analyzer`). Hiển thị type mà compiler suy luận ra ngay trên màn hình — rất hữu ích khi đang học TypeScript. Thấy rối thì `<leader>ih` để tắt theo buffer.
 
@@ -416,11 +466,13 @@ npx create-next-app@latest /tmp/probe --typescript --tailwind --app --eslint --y
 cd /tmp/probe && nvim app/page.tsx
 ```
 
-Bảy điểm phải đạt:
+Chín điểm phải đạt:
 
 | Kiểm tra | Cách xem | Kết quả đúng |
 |---|---|---|
 | Treesitter đọc được `.tsx` | `:InspectTree` | Hiện cây cú pháp, không báo thiếu parser |
+| Query của `tsx` load được | `:lua print(vim.treesitter.query.get("tsx","highlights") ~= nil)` | `true` |
+| Indent theo treesitter | `:set indentexpr?` trong file `.tsx` | `v:lua.require'nvim-treesitter'.indentexpr()` |
 | LSP attach đủ | `:checkhealth vim.lsp` | Có `ts_ls`, `eslint`, `tailwindcss`, `emmet_ls`, `null-ls` |
 | Type hiển thị | `K` trên một biến | Hiện type |
 | Inlay hints | mở file | Type suy luận hiện mờ sau biến |
